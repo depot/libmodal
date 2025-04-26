@@ -1,33 +1,35 @@
-# libmodal: Lightweight [Modal](https://modal.com) client
+# non-native
 
-Current state: **alpha. not yet published.**
-
-Modal client libraries for JavaScript and Go.
-
-This repository provides lightweight alternatives to the [Modal Python Library](https://github.com/modal-labs/modal-client). They let you start sandboxes, read or edit volumes, and manage containers. However, they don't support running Modal Apps / Functions — those still need to be written in Python!
-
-## JavaScript
-
-Install this in any server-side Node.js / Deno / Bun project.
+Setup after cloning the repo:
 
 ```bash
-npm install modal
+npm install
+
+./node_modules/.bin/grpc_tools_node_protoc \
+  --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto \
+  --ts_proto_out=./proto \
+  --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false \
+  --proto_path=../modal-client \
+  ../modal-client/modal_proto/*.proto
 ```
 
-## Go
-
-First, use `go get` to install the latest version of the library.
+Then run a script with:
 
 ```bash
-go get -u github.com/modal-labs/libmodal/modal-go
+node --import tsx path/to/script.ts
 ```
 
-Next, include Modal in your application:
+This isn't meant to be a clean package or library setup, it's a minimal experiment for now.
 
-```go
-import "github.com/modal-labs/libmodal/modal-go"
-```
+Not going to mess with `tsup` or other bundlers.
 
-## License
+## gRPC support
 
-Code is released under the [MIT license](./LICENSE).
+We're using `nice-grpc` because the `@grpc/grpc-js` library kind of sucks, it doesn't even use promises? What's going on with this part of the ecosystem.
+
+## Unimplemented features
+
+- Line buffering (`by_line=True` in the Python client)
+- Distinguishing different failed status codes in streaming RPCs
+- gRPC retries of any kind
+- Error handling in stdin `WritableStream` instance via its `controller`
