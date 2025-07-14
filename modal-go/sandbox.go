@@ -214,6 +214,54 @@ func (sb *Sandbox) Tunnels(timeout time.Duration) (map[int]*Tunnel, error) {
 	return sb.tunnels, nil
 }
 
+// Snapshot creates a memory/state snapshot of the sandbox.
+// Returns the snapshot ID that can be used to restore the sandbox later.
+func (sb *Sandbox) Snapshot() (string, error) {
+	resp, err := client.SandboxSnapshot(sb.ctx, pb.SandboxSnapshotRequest_builder{
+		SandboxId: sb.SandboxId,
+	}.Build())
+	if err != nil {
+		return "", err
+	}
+	return resp.GetSnapshotId(), nil
+}
+
+// SnapshotFilesystem snapshots the filesystem of the sandbox.
+// The timeout parameter specifies how long to wait for the snapshot operation to complete.
+// Returns an Image that can be used to spawn new sandboxes with the same filesystem.
+func (sb *Sandbox) SnapshotFilesystem(timeout time.Duration) (*Image, error) {
+	resp, err := client.SandboxSnapshotFs(sb.ctx, pb.SandboxSnapshotFsRequest_builder{
+		SandboxId: sb.SandboxId,
+		Timeout:   float32(timeout.Seconds()),
+	}.Build())
+	if err != nil {
+		return nil, err
+	}
+	
+	// Check if the operation completed successfully
+	if resp.GetResult() != nil && resp.GetResult().GetStatus() == pb.GenericResult_GENERIC_STATUS_TIMEOUT {
+		return nil, SandboxTimeoutError{Exception: "Filesystem snapshot operation timed out"}
+	}
+	
+	return &Image{
+		ImageId: resp.GetImageId(),
+		ctx:     sb.ctx,
+	}, nil
+}
+
+// RestoreFromSnapshot creates a new sandbox from a snapshot ID.
+// This restores the sandbox to the exact state when the snapshot was created.
+func RestoreFromSnapshot(ctx context.Context, snapshotId string) (*Sandbox, error) {
+	resp, err := client.SandboxRestore(ctx, pb.SandboxRestoreRequest_builder{
+		SnapshotId: snapshotId,
+	}.Build())
+	if err != nil {
+		return nil, err
+	}
+	return newSandbox(ctx, resp.GetSandboxId()), nil
+}
+
+
 // ContainerProcess represents a process running in a Modal container, allowing
 // interaction with its standard input/output/error streams.
 //
