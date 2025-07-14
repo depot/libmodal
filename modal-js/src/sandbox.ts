@@ -231,6 +231,39 @@ export class Sandbox {
 
     return this.#tunnels;
   }
+
+  /**
+   * Create a memory/state snapshot of the sandbox.
+   * @returns The snapshot ID that can be used to restore the sandbox later.
+   */
+  async snapshot(): Promise<string> {
+    const resp = await client.sandboxSnapshot({
+      sandboxId: this.sandboxId,
+    });
+    return resp.snapshotId;
+  }
+
+  /**
+   * Snapshot the filesystem of the sandbox.
+   * @param timeout - How long to wait for the snapshot operation to complete (in milliseconds).
+   * @returns An Image that can be used to spawn new sandboxes with the same filesystem.
+   */
+  async snapshotFilesystem(timeout = 55000): Promise<Image> {
+    const { Image } = await import("./image");
+    
+    const resp = await client.sandboxSnapshotFs({
+      sandboxId: this.sandboxId,
+      timeout: timeout / 1000, // Convert to seconds
+    });
+
+    if (
+      resp.result?.status === GenericResult_GenericStatus.GENERIC_STATUS_TIMEOUT
+    ) {
+      throw new SandboxTimeoutError();
+    }
+
+    return new Image(resp.imageId);
+  }
 }
 
 export class ContainerProcess<R extends string | Uint8Array = any> {
@@ -408,4 +441,19 @@ function inputStreamCp<R extends string | Uint8Array>(
 
 function encodeIfString(chunk: Uint8Array | string): Uint8Array {
   return typeof chunk === "string" ? new TextEncoder().encode(chunk) : chunk;
+}
+
+/**
+ * Creates a new sandbox from a snapshot ID.
+ * This restores the sandbox to the exact state when the snapshot was created.
+ * @param snapshotId - The ID of the snapshot to restore from.
+ * @returns A new Sandbox instance.
+ */
+export async function restoreFromSnapshot(
+  snapshotId: string,
+): Promise<Sandbox> {
+  const resp = await client.sandboxRestore({
+    snapshotId,
+  });
+  return new Sandbox(resp.sandboxId);
 }
