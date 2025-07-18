@@ -16,6 +16,7 @@ import {
   toModalWriteStream,
 } from "./streams";
 import { InvalidError, SandboxTimeoutError } from "./errors";
+import type { Image } from "./image";
 
 /**
  * Stdin is always present, but this option allow you to drop stdout or stderr

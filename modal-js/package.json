@@ -31,7 +31,6 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint",
-    "prepare": "scripts/gen-proto.sh",
     "test": "vitest",
     "version": "npm run check && git add -A && git commit -m \"modal-js/v$npm_package_version\"",
     "prepublishOnly": "npm run build && git push",
