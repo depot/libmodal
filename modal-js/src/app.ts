@@ -4,6 +4,7 @@ import {
   ObjectCreationType,
   RegistryAuthType,
   PortSpec,
+  SandboxInfo,
   TunnelType,
 } from "../proto/modal_proto/api";
 import { client } from "./client";
@@ -157,6 +158,32 @@ export class App {
     });
 
     return new Sandbox(createResp.sandboxId);
+  }
+
+  /**
+   * List sandboxes for this app, optionally filtered by tags.
+   * @param options - Options for filtering sandboxes
+   * @returns Array of sandbox info objects with timing data
+   */
+  async listSandboxes(options: {
+    tags?: Record<string, string>;
+    includeFinished?: boolean;
+  } = {}): Promise<SandboxInfo[]> {
+    const tagsList = options.tags 
+      ? Object.entries(options.tags).map(([name, value]) => ({
+          tagName: name,
+          tagValue: value,
+        }))
+      : [];
+
+    const resp = await client.sandboxList({
+      appId: this.appId,
+      environmentName: "",
+      includeFinished: options.includeFinished ?? false,
+      tags: tagsList,
+    });
+
+    return resp.sandboxes;
   }
 
   async imageFromRegistry(tag: string, secret?: Secret): Promise<Image> {

@@ -264,6 +264,23 @@ export class Sandbox {
 
     return new Image(resp.imageId);
   }
+
+  /**
+   * Set tags on this sandbox.
+   * @param tags - An object containing key-value pairs for tags
+   */
+  async setTags(tags: Record<string, string>): Promise<void> {
+    const tagsList = Object.entries(tags).map(([name, value]) => ({
+      tagName: name,
+      tagValue: value,
+    }));
+
+    await client.sandboxTagsSet({
+      environmentName: "", // Will use default environment
+      sandboxId: this.sandboxId,
+      tags: tagsList,
+    });
+  }
 }
 
 export class ContainerProcess<R extends string | Uint8Array = any> {
